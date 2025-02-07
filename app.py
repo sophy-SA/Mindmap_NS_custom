@@ -17,9 +17,9 @@ from datetime import datetime
 # + 重複のチェックや制限を無くしてその分発想の追加などが働くようにした
 
 #シングルプロンプトの中ではほぼ完成形と思われる
-#  
+#戦略指針のコメントも出るので実用価値も充分   
 #  FDKのコア技術を基礎知識に埋め込んだカスタマイズバージョン
-#
+#  コア技術のリストを入れることでより具体的なキーワードになった気がする
 #
 
 # extract_mermaid_code関数の定義
@@ -28,10 +28,12 @@ def extract_mermaid_code(response_text):
         # response_textを行ごとに分割
         lines = response_text.split('\n')
         mermaid_code = []
-        response_text = []
+        response_text1 = []
+        response_text2 = []
 
         # 各行をチェック
         in_mermaid_block = False
+        found_development_policy = False
         for line in lines:
             if line.strip() == '```mermaid':
                 in_mermaid_block = True
@@ -43,13 +45,20 @@ def extract_mermaid_code(response_text):
             if in_mermaid_block:
                 mermaid_code.append(line)
             else:
-                response_text.append(line)
+                if "顧客価値の考察" in line:
+                    found_development_policy = True
+
+                if found_development_policy:
+                    response_text2.append(line)
+                else:
+                    response_text1.append(line)
 
         # 結果を整形
         mermaid_code = '\n'.join(mermaid_code)
-        response_text = '\n'.join(response_text)
+        response_text1 = '\n'.join(response_text1)
+        response_text2 = '\n'.join(response_text2)
 
-        return response_text, mermaid_code
+        return response_text1, response_text2, mermaid_code
     except Exception as e:
         st.error(f"エラーが発生しました: {str(e)}")
 
@@ -75,13 +84,15 @@ if 'img_url' not in st.session_state:
     st.session_state.img_url = None
 if 'mermaid_code' not in st.session_state:
     st.session_state.mermaid_code = None
-if 'response_text' not in st.session_state:
-    st.session_state.response_text = None
+if 'response_text1' not in st.session_state:
+    st.session_state.response_text1 = None
+if 'response_text2' not in st.session_state:
+    st.session_state.response_text2 = None
 
 
 # 入力フォームの作成
 prompt1 = st.text_input("ターゲットにする製品/用途/購買層を入力：　例) □□向け、○○を△△する、○○用品など")
-prompt2 = st.text_input("保有するコア技術/製品/サービスを入力：　例）○○製造技術、△△マネジメントサービスなど")
+prompt2 = st.text_input("保有する技術/製品/サービスを入力：　例）○○製造技術、△△マネジメントサービスなど")
 prompt3 = st.text_area("指示内容、注意点、参考情報：", value="特になし")
 
 # 推論開始ボタンが押されたときの処理
@@ -97,11 +108,11 @@ if st.button("推論開始(マップを生成)"):
             
             ##マインドマップの形式
             左の端にユーザーの設定したニーズがあり、ニーズから用途や利用シーンを発想していく。
-　　　　　　発想した要素からさらに発想をつなげて独創的で多様なたくさんの要素を発想する。
-　　　　　　発想は右に向かって広がり、キーワードが増える。
+            発想した要素からさらに発想をつなげて独創的で多様なたくさんの要素を発想する。
+            発想は右に向かって広がり、キーワードが増える。
 
             反対側(右端)にユーザーの設定したシーズ(保有している技術、製品、サービス)がある。
-　　　　　　シーズから左に向かって、応用や転換、または組み合わせで作れる技術を発想して増やしていく。
+            シーズから左に向かって、応用や転換、または組み合わせで作れる技術を発想して増やしていく。
 
             中央には要求される特性がある。
             発想で広がったニーズから求められる特性と応用で広がったシーズ技術、製品、サービスが提供できる特性が
@@ -244,36 +255,37 @@ if st.button("推論開始(マップを生成)"):
 
             #手順1、ニーズの発想
             設定されたニーズから利用シーンや用途、特徴を発想して様々なキーワードを提案していく(ニーズの第1層)。
-　　　　　　「ニーズの第1層」のキーワードからさらに新たな利用シーンや用途を発想する(ニーズの第2層)。
-　　　　　　「ニーズの第2層」のキーワードから「ニーズの要求特性」の候補をたくさん発想して出力する。
+            「ニーズの第1層」のキーワードからさらに新たな利用シーンや用途を発想する(ニーズの第2層)。
+            「ニーズの第2層」のキーワードから「ニーズの要求特性」の候補をたくさん発想して出力する。
             発想は柔軟で独創的なものを重視する。
 
             #手順2、シーズの応用
             設定されたシーズを応用して開発できる技術、または提供できるサービスや機能を提案する(シーズの第1層)。
-　　　　　　「シーズの第1層」をさらに応用、または組み合わせて開発できる技術、製品、サービスを提案する(シーズの第2層)。
+            「シーズの第1層」をさらに応用、または組み合わせて開発できる技術、製品、サービスを提案する(シーズの第2層)。
             「シーズの第1層」を基に「シーズの第2層」はより多くの技術や製品を産み出す。
-　　　　　　「シーズの第2層」が提供できる「シーズ要求特性」の候補をたくさん発想して出力する。
-　　　　　　「シーズの要求特性」で出力する単語は、「ニーズの要求特性」の単語と意味が近いものがある場合は同じ言葉にする。
+            「シーズの第2層」が提供できる「シーズ要求特性」の候補をたくさん発想して出力する。
+            「シーズの要求特性」で出力する単語は、「ニーズの要求特性」の単語と意味が近いものがある場合は同じ言葉にする。
             シーズの応用は単純な転換ではなく、柔軟で独創的なものを重視する。
             強みとして「自社のコア技術一覧」の項目を優先する。「自社のコア技術一覧」の応用や組み合わせで得られる項目も優先する。
 
             #手順3、ニーズとシーズに共通する「要求特性」の抽出
             ニーズの発想とシーズの応用の出力結果から、どのような「要求特性」が両者に共通するか考察する。
             共通する「要求特性」をマインドマップに記載する項目として抽出する。
-　　　　　　競争力を高めるため、独自性のあるものや差別化が行える項目を重要視してとりあげる。
-　　　　　　重要な項目は共通していなくても抽出する。
+            競争力を高めるため、独自性のあるものや差別化が行える項目を重要視してとりあげる。
+            重要な項目は共通していなくても抽出する。
 
             #手順4、「要求特性」からの発想の追加
-　　　　　　共通しておらず接続できない「ニーズの要求特性」について、可能なら、これと繋げられるシーズ応用の発想を追加する。
-　　　　　　「シーズの第2層」⇒「シーズの第1層」の順に逆に発想する。
-　　　　　　共通しておらず接続できない「シーズの要求特性」について、可能なら、これと繋げられるニーズの発想を追加する。
-　　　　　　「ニーズの第2層」⇒「ニーズの第1層」の順に逆に発想する。
+            共通しておらず接続できない「ニーズの要求特性」について、可能なら、これと繋げられるシーズ応用の発想を追加する。
+            「シーズの第2層」⇒「シーズの第1層」の順に逆に発想する。
+            共通しておらず接続できない「シーズの要求特性」について、可能なら、これと繋げられるニーズの発想を追加する。
+            「ニーズの第2層」⇒「ニーズの第1層」の順に逆に発想する。
 
-　　　　　　ここまでの回答結果を基に、マインドマップで描画する各層のキーワードを決定し出力する。
+            ここまでの回答結果を基に、マインドマップで描画する各層のキーワードを決定し出力する。
 
             #手順5、マインドマップ構成の決定とMermaidのオブジェクト図の作成
             ここまで出力した内容を基に「マインドマップの形式」に沿ってマインドマップの構成を決定し、
             顧客価値の創出について下記の解説と提案を行う。
+            ＊重要：この解説部分は後で切り出すため、顧客価値の解説をする前に必ず「顧客価値の考察」と出力して改行する。
 
             ・シーズ技術が顧客に提供できる本質的な価値や強味と有望なターゲット
             ・市場ニーズからみたターゲット層が求めている価値と有効な技術やサービス
@@ -396,7 +408,7 @@ if st.button("推論開始(マップを生成)"):
             #st.write(response.text)
 
             # AIの応答を解説とMermaidコードに分割
-            response_text, mermaid_code = extract_mermaid_code(response.text)
+            response_text1, response_text2, mermaid_code = extract_mermaid_code(response.text)
 
 
             # Mermaid形式のコードを抽出して整形
@@ -421,19 +433,21 @@ if st.button("推論開始(マップを生成)"):
                 st.session_state.img_data = response.content
                 st.session_state.img_url = img_url
                 st.session_state.mermaid_code = mermaid_code
-                st.session_state.response_text = response_text
+                st.session_state.response_text1 = response_text1
+                st.session_state.response_text2 = response_text2
 
             else:
                 st.session_state.img_data = []
                 st.session_state.img_url = []
                 st.session_state.mermaid_code = mermaid_code
-                st.session_state.response_text = response_text
+                st.session_state.response_text1 = response_text1
+                st.session_state.response_text2 = response_text2
                 st.error(f"画像の生成に失敗しました。コードとAIの回答を確認してください。ステータス: {response.status_code}")
         
         except Exception as e:
             st.error(f"エラーが発生しました: {str(e)}")
     else:
-        st.warning("入力データに不足があります")
+        st.warning("未入力の項目があります")
 
                
 # 現在の日時を使用してユニークなファイル名を生成
@@ -451,6 +465,30 @@ if st.session_state.img_data:
         file_name=f"needs_map_{timestamp}.png",
         mime="image/png"
     )
+
+# AIの解説部分の表示とダウンロード
+if 'response_text2' in st.session_state and st.session_state.response_text2:
+    st.write(st.session_state.response_text2)
+
+    st.download_button(
+        label="分析結果のダウンロード",
+        data=st.session_state.response_text2,
+        file_name=f"ai_explanation_part2_{timestamp}.txt",
+        mime="text/plain"
+    )
+
+
+if 'response_text1' in st.session_state and st.session_state.response_text1:
+    with st.expander("ニーズ/シーズの種だし部分を表示"):
+        st.text(st.session_state.response_text1)
+
+    st.download_button(
+        label="種だし部分のダウンロード",
+        data=st.session_state.response_text1,
+        file_name=f"ai_explanation_part1_{timestamp}.txt",
+        mime="text/plain"
+    )
+
                 
 if st.session_state.mermaid_code:
     # Mermaidコードの表示（オプション）
@@ -464,19 +502,5 @@ if st.session_state.mermaid_code:
         file_name=f"needs_map_{timestamp}.txt",
         mime="text/plain"
     )
-
-if st.session_state.response_text:
-    # AIの解説部分の表示
-    st.write("### AIの解説を表示:")
-    st.write(st.session_state.response_text)
-
-    # AIの解説ダウンロードボタン
-    st.download_button(
-        label="AIの解説 ダウンロード",
-        data=st.session_state.response_text,
-        file_name=f"AI_explanation_{timestamp}.txt",
-        mime="text/plain"
-    )
-
 
 
